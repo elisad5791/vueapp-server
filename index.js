@@ -2,6 +2,16 @@ const express = require('express')
 const { createHandler } = require('graphql-http/lib/use/express')
 const { buildSchema } = require('graphql')
 var cors = require('cors')
+const { Server } = require('socket.io')
+const { createServer } = require('http')
+
+const app = express()
+const httpServer = createServer(app)
+const io = new Server(httpServer, { cors: { origin: '*' } })
+
+io.on('connection', (socket) => {
+  console.log('new connection...')
+});
 
 const products = require('./data/products')
 
@@ -43,9 +53,6 @@ const schema = buildSchema(`
   }
 `)
 
-const app = express()
-const expressWs = require('express-ws')(app);
-
 const root = {
   version: () => '1.0.0',
 
@@ -74,7 +81,7 @@ const root = {
 
     products.push(newProduct)
 
-    broadcast(makeEvent('updateProducts', products))
+    io.emit('update-products', JSON.stringify(products))
 
     return root.product({id: newProduct.id})
   }
@@ -88,13 +95,6 @@ app.use('/graphql', createHandler({
 }))
 
 const port = 4000
-app.listen(port)
+httpServer.listen(port)
 console.log(`Server started at ${port} port.`)
-
-function broadcast(message) {
-  expressWs.getWss().clients.forEach(c => c.send(message))
-}
-
-function makeEvent(eventName, data = null) {
-  return JSON.stringify({ event: eventName, data })
-}
+console.log('WS Server is up')
