@@ -44,6 +44,7 @@ const schema = buildSchema(`
 `)
 
 const app = express()
+const expressWs = require('express-ws')(app);
 
 const root = {
   version: () => '1.0.0',
@@ -73,6 +74,8 @@ const root = {
 
     products.push(newProduct)
 
+    broadcast(makeEvent('updateProducts', products))
+
     return root.product({id: newProduct.id})
   }
 }
@@ -87,3 +90,11 @@ app.use('/graphql', createHandler({
 const port = 4000
 app.listen(port)
 console.log(`Server started at ${port} port.`)
+
+function broadcast(message) {
+  expressWs.getWss().clients.forEach(c => c.send(message))
+}
+
+function makeEvent(eventName, data = null) {
+  return JSON.stringify({ event: eventName, data })
+}
