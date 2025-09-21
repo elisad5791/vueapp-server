@@ -89,6 +89,8 @@ const root = {
 
 app.use(cors())
 
+app.use('/images', express.static('images'))
+
 app.use('/graphql', createHandler({
   schema: schema,
   rootValue: root
