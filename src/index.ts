@@ -1,19 +1,23 @@
-const express = require('express')
-const { createHandler } = require('graphql-http/lib/use/express')
-const { buildSchema } = require('graphql')
-var cors = require('cors')
-const { Server } = require('socket.io')
-const { createServer } = require('http')
+import express from 'express'
+import { createHandler } from 'graphql-http/lib/use/express'
+import { buildSchema } from 'graphql'
+import cors from 'cors'
+import { Server } from 'socket.io'
+import { createServer } from 'http'
+import { products } from './data/products.js'
+import { Product, Rating, ProductArgs, AddProductArgs } from './types'
 
 const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, { cors: { origin: '*' } })
 
 io.on('connection', (socket) => {
-  console.log('new connection...')
-});
+  console.log('new connection', socket.id)
 
-const products = require('./data/products')
+  socket.on('disconnect', () => {
+    console.log('user disconnected', socket.id);
+  });
+});
 
 const schema = buildSchema(`
   type Query {
@@ -54,22 +58,22 @@ const schema = buildSchema(`
 `)
 
 const root = {
-  version: () => '1.0.0',
+  version: ():string => '1.0.0',
 
-  product({id}) {
-    const product = products.find(product => product.id == id)
+  product({ id }: ProductArgs): Product|undefined {
+    const product = products.find(product => product.id == parseInt(id))
     return product
   },
 
-  products: () => products,
+  products: (): Product[] => products,
 
-  addProduct({ product }) {
-    const newRating = {
+  addProduct({ product }: AddProductArgs): Product | undefined {
+    const newRating: Rating = {
         'rate': product.rate,
         'count': product.count
     }
 
-    const newProduct = {
+    const newProduct: Product = {
       'id': products.length + 1,
       'title': product.title,
       'price': product.price,
@@ -83,7 +87,7 @@ const root = {
 
     io.emit('update-products', JSON.stringify(products))
 
-    return root.product({id: newProduct.id})
+    return root.product({ id: newProduct.id.toString() })
   }
 }
 

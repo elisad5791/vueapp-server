@@ -1,4 +1,6 @@
-const products = [
+import { Product } from '@/types';
+
+export const products: Product[] = [
   {
     id: 1,
     title: "Fjallraven - Foldsack No. 1 Backpack, Fits 15 Laptops",
@@ -263,5 +265,3 @@ const products = [
     },
   },
 ]
-
-module.exports = products
